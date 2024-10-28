@@ -16,10 +16,11 @@
 
 %% Change
 -define(Appl,"appl").
+-define(Dir,"appl").
 -define(ApplAtom,list_to_atom(?Appl)).
 
 -define(NodeName,?Appl).
--define(ApplDir,?Appl++"_container").
+-define(ApplDir,?Dir++"_container").
 -define(TarFile,?Appl++".tar.gz").
 -define(TarDir,"tar_dir").
 -define(ExecDir,"exec_dir").
