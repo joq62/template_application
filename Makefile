@@ -68,6 +68,6 @@ eunit:
 	cp _build/prod/rel/$(appl)/*.tar.gz tar_dir/$(appl).tar.gz;
 	#INFO: Starts the eunit testing .................
 	erl -pa test_ebin\
-	 -sname test_appl\
+	 -sname test_$(appl)\
 	 -run $(m) start\
 	 -setcookie a
