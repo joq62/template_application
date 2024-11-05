@@ -41,7 +41,12 @@ start()->
 
 test_1()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
-
+    {ok,Host}=net:gethostname(),
+    ApplNode=list_to_atom("appl@"++Host),
+    pong=rpc:call(ApplNode,appl,ping,[],5000),
+    {Year,Month,Day}=date(),
+    {ok,Year,Month,Day}=rpc:call(ApplNode,appl,template_call,[glurk],5000),
+    
     ok.
 
 

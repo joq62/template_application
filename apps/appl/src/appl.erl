@@ -49,8 +49,8 @@
 -define(SERVER, ?MODULE).
 		     
 -record(state, {
-
-	        
+		control_node_active,
+		target_resources_status
 	       }).
 
 %%%===================================================================
@@ -243,16 +243,97 @@ handle_cast(UnMatchedSignal, State) ->
 	  {noreply, NewState :: term(), Timeout :: timeout()} |
 	  {noreply, NewState :: term(), hibernate} |
 	  {stop, Reason :: normal | term(), NewState :: term()}.
+
 handle_info(timeout, State) ->
+    %%- Create logfiles
+    file:del_dir_r(?MainLogDir),
+    file:make_dir(?MainLogDir),
+    [NodeName,_HostName]=string:tokens(atom_to_list(node()),"@"),
+    NodeNodeLogDir=filename:join(?MainLogDir,NodeName),
+    case log:create_logger(NodeNodeLogDir,?LocalLogDir,?LogFile,?MaxNumFiles,?MaxNumBytes) of
+	ok->
+	    ?LOG_NOTICE("Log dirs and file created",[NodeNodeLogDir]);
+	LogError->
+	    ?LOG_WARNING("Failed to create log dir and file ",[LogError])
+    end,
+
+    %%-- Connect and trade resources
+    CtrlNode=lib_vm:get_node(?ControlNodeName),
+    NewControlStatus=case net_adm:ping(CtrlNode) of
+			 pang->
+			     ?LOG_WARNING("Error Control node ctrl is not available ",[CtrlNode]),
+			     false; 
+			 pong->
+			     ?LOG_NOTICE("Control node ctrl is availablel",[CtrlNode]),
+			     true
+		     end,
     initial_trade_resources(),
+    TargetTypes=rd_store:get_target_resource_types(),
+    NonActiveTargetTypes=lists:sort([TargetType||TargetType<-TargetTypes,
+						 []=:=rd:fetch_resources(TargetType)]),
+    TargetStatus=State#state.target_resources_status,
+    NewTargetStatus=if 
+			TargetStatus=:=NonActiveTargetTypes->
+			    NonActiveTargetTypes;
+			true->
+			    case NonActiveTargetTypes of
+				[]->
+				    ?LOG_NOTICE("All needed target types are availablel",[TargetTypes]);	    
+				TargetError ->
+				    ?LOG_WARNING("Error Target types missing ",[TargetError])
+			    end,
+			    NonActiveTargetTypes
+		    end,
+    NewState=State#state{target_resources_status=NewTargetStatus,
+			 control_node_active=NewControlStatus},	    
     Self=self(),
     spawn_link(fun()->rd_loop(Self) end),
-    {noreply, State};
+    {noreply, NewState};
 
 handle_info(rd_loop_timeout, State) ->
-    io:format("rd_loop_timeout ~p~n",[{?MODULE,?LINE}]),
-    rd:trade_resources(),
-    timer:sleep(3000),
+    CtrlNode=lib_vm:get_node(?ControlNodeName),
+    NewControlStatus=case net_adm:ping(CtrlNode) of
+			 pang->
+			     case State#state.control_node_active of
+				 false->
+				     false;
+				 true->
+				     ?LOG_WARNING("Error Control node ctrl is not available ",[CtrlNode]),
+				     false
+			     end; 
+			 pong->
+			     case State#state.control_node_active of
+				 true->
+				     true;
+				 false->
+				     ?LOG_NOTICE("Control node ctrl is availablel",[CtrlNode]),
+				     true
+			     end
+		     end,
+    TargetTypes=rd_store:get_target_resource_types(),
+    NonActiveTargetTypes=lists:sort([TargetType||TargetType<-TargetTypes,
+						 []=:=rd:fetch_resources(TargetType)]),
+    
+    TargetStatus=State#state.target_resources_status,
+    NewTargetStatus=if 
+			TargetStatus=:=NonActiveTargetTypes->
+			    NonActiveTargetTypes;
+			true->
+			    case NonActiveTargetTypes of
+				[]->
+				    ?LOG_NOTICE("All needed target types are availablel",[TargetTypes]);	    
+				Error ->
+				    ?LOG_WARNING("Error Target types missing ",[Error])
+			    end,
+			    NonActiveTargetTypes
+		    end,
+    NewState=State#state{target_resources_status=NewTargetStatus,
+			 control_node_active=NewControlStatus},	    
+    Self=self(),
+    spawn_link(fun()->rd_loop(Self) end),
+    {noreply, NewState};
+
+handle_info({'EXIT',_Pid,normal}, State) ->
     {noreply, State};
 
 handle_info(Info, State) ->
@@ -303,14 +384,29 @@ format_status(_Opt, Status) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
 rd_loop(Parent)->
+    CtrlNode=lib_vm:get_node("ctrl"),
+    net_adm:ping(CtrlNode),
+    rd:trade_resources(),
     timer:sleep(?RdTradeInterval),
-    Parent!rd_loop_timeout,
-    rd_loop(Parent).
+    Parent!rd_loop_timeout.
 
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
 
 initial_trade_resources()->
     [rd:add_local_resource(ResourceType,Resource)||{ResourceType,Resource}<-?LocalResourceTuples],
     [rd:add_target_resource_type(TargetType)||TargetType<-?TargetTypes],
     rd:trade_resources(),
+    timer:sleep(3000),
+    rd:trade_resources(),
     timer:sleep(3000).
+

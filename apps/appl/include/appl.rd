@@ -2,4 +2,4 @@
 -define(LocalResourceTuples,[{appl,{appl,node()}}]).
 
 %% I want following resource types
--define(TargetTypes,[]).
+-define(TargetTypes,[add_test]).

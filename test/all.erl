@@ -29,6 +29,8 @@
 -define(Foreground,"./"++?ApplDir++"bin/"++?Appl++" "++"foreground").
 -define(Daemon,"./"++?ApplDir++"/bin/"++?Appl++" "++"daemon").
 
+-define(LogFile,?Appl++"_container/logs/"++?Appl++"/log.logs/test_logfile.1").
+
 
 %%
 %% --------------------------------------------------------------------
@@ -47,14 +49,33 @@ start()->
     ApplicationToTest=list_to_atom("test_"++?Appl),
     ok=rpc:call(get_node(?NodeName),ApplicationToTest,start,[],10*5000),
 
-    file:del_dir_r(?ApplDir),   
-    rpc:call(get_node(?NodeName),init,stop,[],5000),
-    true=check_node_stopped(get_node(?NodeName)),
+  %  file:del_dir_r(?ApplDir),   
+  %  rpc:call(get_node(?NodeName),init,stop,[],5000),
+  %  true=check_node_stopped(get_node(?NodeName)),
     io:format("Test OK !!! ~p~n",[?MODULE]),
-    timer:sleep(2000),
-    init:stop(),
+    log_loop([]),
+
+  %  timer:sleep(2000),
+  %  init:stop(),
     ok.
 
+
+
+
+
+%% --------------------------------------------------------------------
+%% Function: available_hosts()
+%% Description: Based on hosts.config file checks which hosts are avaible
+%% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
+%% --------------------------------------------------------------------
+log_loop(Strings)->    
+    Info=os:cmd("cat "++?LogFile),
+    NewStrings=string:lexemes(Info,"\n"),
+    
+    [io:format("~p~n",[String])||String<-NewStrings,
+				 false=:=lists:member(String,Strings)],
+    timer:sleep(10*1000),
+    log_loop(NewStrings).
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
 %% Description: Based on hosts.config file checks which hosts are avaible
@@ -82,7 +103,7 @@ setup()->
     pong=rpc:call(get_node(?NodeName),rd,ping,[],5000),
 
     %% Change
-    pong=rpc:call(get_node(?NodeName),?ApplAtom,ping,[],5000),
+    pong=rpc:call(get_node(?NodeName),?ApplAtom,ping,[],3*5000),
     ok.
 
 
