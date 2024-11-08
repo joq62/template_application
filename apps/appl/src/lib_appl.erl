@@ -57,7 +57,7 @@ call(ResourceType,M,F,A,TO)->
 			       []->
 				   {ok,Res};
 			       DiffList ->
-				   {error,"Different results",[Res,DiffList]}
+				   {error,["Different results",Res,DiffList]}
 			   end;
 		       X ->
 			   {error,["Unmatched signal ",X]}
