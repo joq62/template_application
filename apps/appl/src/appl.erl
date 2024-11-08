@@ -33,6 +33,8 @@
 
 
 -export([
+	 call/5,
+	 test_crash/0,
 	 template_call/1,
 	 template_cast/1,	 
 	 start/0,
@@ -65,6 +67,24 @@
 %%--------------------------------------------------------------------
 start()->
     application:start(?MODULE).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Used to check if the application has started correct
+%% @end
+%%--------------------------------------------------------------------
+-spec call(ResourceType::atom(),M::atom(),F::atom(),Args::term(),T::integer()) -> {ok,Result::term()}|{error,Reason::term()}.
+call(ResourceType,M,F,Arg,T)-> 
+    gen_server:call(?SERVER, {call,ResourceType,M,F,Arg,T},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Used to check if the application has started correct
+%% @end
+%%--------------------------------------------------------------------
+-spec test_crash() -> ok | Error::term().
+test_crash()-> 
+    gen_server:call(?SERVER, {test_crash},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -150,6 +170,54 @@ init([]) ->
 
 
 %%----- TemplateCode ---------------------------------------------------------------
+handle_call({call,ResourceType,M,F,Args,T}, _From, State) ->
+    Result=try lib_appl:call(ResourceType,M,F,Args,T) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,ErrorR}->
+		   {error,["M:F [A]) with reason",lib_appl,call,[ResourceType,M,F,Args,T],"Reason=", ErrorR]}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {error,[#{event=>Event,
+			     module=>?MODULE,
+			     function=>?FUNCTION_NAME,
+			     line=>?LINE,
+			     args=>Args,
+			     reason=>Reason,
+			     stacktrace=>[Stacktrace]}]}
+	   end,
+    Reply=case Result of
+	      {ok,Res}->
+		  {ok,Res};
+	      {error,ErrorReason}->
+		  {error,ErrorReason}
+	  end,
+    {reply, Reply,State};
+
+handle_call({test_crash}, _From, State) ->
+    Result=try lib_appl:test_crash(glurk,erlang,nodes,[],5000) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,ErrorR}->
+		   {error,["M:F [A]) with reason",lib_appl,test_crash,[glurk,erlang,nodes,[],5000],"Reason=", ErrorR]}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {error,[#{event=>Event,
+			     module=>?MODULE,
+			     function=>?FUNCTION_NAME,
+			     line=>?LINE,
+			     args=>[],
+			     reason=>Reason,
+			     stacktrace=>[Stacktrace]}]}
+	   end,
+    Reply=case Result of
+	      {ok,Res}->
+		  {ok,Res};
+	      {error,ErrorReason}->
+		  {error,ErrorReason}
+	  end,
+    {reply, Reply,State};
+
 
 handle_call({template_call,Args}, _From, State) ->
     Result=try erlang:apply(erlang,date,[])  of

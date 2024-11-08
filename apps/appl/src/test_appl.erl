@@ -31,10 +31,62 @@
 %%--------------------------------------------------------------------
 start()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
-    ok=test_1(),
+    ok=test_4(),
+ %   ok=test_1(),
+ %   ok=test_2(),
+ %   ok=test_3(),
+
     ok.
 
 
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+
+test_4()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+    {ok,Host}=net:gethostname(),
+    N=list_to_atom("appl@"++Host),
+    {error,[ErrorMap]}=rpc:call(N,appl,test_crash,[],6000),
+    error=maps:get(event,ErrorMap),
+    appl=maps:get(module,ErrorMap),
+    handle_call=maps:get(function,ErrorMap),
+    %maps:get(line,ErrorMap),
+    []=maps:get(args,ErrorMap),
+    badarith=maps:get(reason,ErrorMap),
+    %maps:get(stacktrace,ErrorMap),
+    ok.
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+
+test_3()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+    {ok,Host}=net:gethostname(),
+    N=list_to_atom("appl@"++Host),
+    {error,["M:F [A]) with reason",lib_appl,call,
+	    [glurk,add_test,add,[20,22],5000],
+	    "Reason=",["No target resources ",glurk]]
+    }=rpc:call(N,appl,call,[glurk,add_test,add,[20,22],5000],6000),
+    X=rpc:call(N,appl,test_crash,[],6000),
+    io:format("X ~p~n",[X]),
+    ok.
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+
+test_2()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+    {ok,Host}=net:gethostname(),
+    N=list_to_atom("appl@"++Host),
+    {ok,42}=rpc:call(N,appl,call,[add_test,add_test,add,[20,22],5000],6000),
+    ok.
 %%--------------------------------------------------------------------
 %% @doc
 %% 
@@ -48,7 +100,6 @@ test_1()->
     pong=rpc:call(ApplNode,appl,ping,[],5000),
     {Year,Month,Day}=date(),
     {ok,Year,Month,Day}=rpc:call(ApplNode,appl,template_call,[glurk],5000),
-    
     ok.
 
 
