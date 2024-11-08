@@ -31,13 +31,51 @@
 %%--------------------------------------------------------------------
 start()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+   
+    ok=test_1(),
+    ok=test_2(),
+    ok=test_3(),
     ok=test_4(),
- %   ok=test_1(),
- %   ok=test_2(),
- %   ok=test_3(),
-
+    ok=test_5(),
+    ok=test_6(),
     ok.
 
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+
+test_6()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+    {ok,Host}=net:gethostname(),
+    N=list_to_atom("appl@"++Host),
+    X=rpc:call(N,appl,test_diff_result,[],6000),
+    {error,["M:F [A]) with reason",lib_appl,test_diff_result,
+	    [add_test,add_test,add,[20,22],5000],
+	    "Reason=",["Different results",42,[glurk]]]
+    }=X,
+    ok.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+
+test_5()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+    {ok,Host}=net:gethostname(),
+    N=list_to_atom("appl@"++Host),
+    X=rpc:call(N,appl,test_badrpc_no_nodes,[],6000),
+    {error,["M:F [A]) with reason",lib_appl,test_badrpc_no_nodes,
+	    [add_test,erlang,glurk,[],5000],
+	    "Reason=",
+	    ["NonExistingNodes and BadRpcList ",
+	     [glurk@c50],
+	     [{badrpc,{'EXIT',{undef,[{erlang,glurk,[],[]}]}}}]]]}=X,
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -72,8 +110,6 @@ test_3()->
 	    [glurk,add_test,add,[20,22],5000],
 	    "Reason=",["No target resources ",glurk]]
     }=rpc:call(N,appl,call,[glurk,add_test,add,[20,22],5000],6000),
-    X=rpc:call(N,appl,test_crash,[],6000),
-    io:format("X ~p~n",[X]),
     ok.
 %%--------------------------------------------------------------------
 %% @doc

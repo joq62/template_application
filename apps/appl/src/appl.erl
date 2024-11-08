@@ -34,7 +34,9 @@
 
 -export([
 	 call/5,
+	 test_diff_result/0,
 	 test_crash/0,
+	 test_badrpc_no_nodes/0,
 	 template_call/1,
 	 template_cast/1,	 
 	 start/0,
@@ -77,6 +79,17 @@ start()->
 call(ResourceType,M,F,Arg,T)-> 
     gen_server:call(?SERVER, {call,ResourceType,M,F,Arg,T},infinity).
 
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Used to check if the application has started correct
+%% @end
+%%--------------------------------------------------------------------
+-spec test_diff_result() -> ok | Error::term().
+test_diff_result()-> 
+    gen_server:call(?SERVER, {test_diff_result},infinity).
+
+
 %%--------------------------------------------------------------------
 %% @doc
 %% Used to check if the application has started correct
@@ -85,6 +98,15 @@ call(ResourceType,M,F,Arg,T)->
 -spec test_crash() -> ok | Error::term().
 test_crash()-> 
     gen_server:call(?SERVER, {test_crash},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Used to check if the application has started correct
+%% @end
+%%--------------------------------------------------------------------
+-spec test_badrpc_no_nodes() -> ok | Error::term().
+test_badrpc_no_nodes()-> 
+    gen_server:call(?SERVER, {test_badrpc_no_nodes},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -200,6 +222,54 @@ handle_call({test_crash}, _From, State) ->
 		   {ok,R};
 	       {error,ErrorR}->
 		   {error,["M:F [A]) with reason",lib_appl,test_crash,[glurk,erlang,nodes,[],5000],"Reason=", ErrorR]}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {error,[#{event=>Event,
+			     module=>?MODULE,
+			     function=>?FUNCTION_NAME,
+			     line=>?LINE,
+			     args=>[],
+			     reason=>Reason,
+			     stacktrace=>[Stacktrace]}]}
+	   end,
+    Reply=case Result of
+	      {ok,Res}->
+		  {ok,Res};
+	      {error,ErrorReason}->
+		  {error,ErrorReason}
+	  end,
+    {reply, Reply,State};
+
+handle_call({test_badrpc_no_nodes}, _From, State) ->
+    Result=try lib_appl:test_badrpc_no_nodes(add_test,erlang,glurk,[],5000) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,ErrorR}->
+		   {error,["M:F [A]) with reason",lib_appl,test_badrpc_no_nodes,[add_test,erlang,glurk,[],5000],"Reason=", ErrorR]}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {error,[#{event=>Event,
+			     module=>?MODULE,
+			     function=>?FUNCTION_NAME,
+			     line=>?LINE,
+			     args=>[],
+			     reason=>Reason,
+			     stacktrace=>[Stacktrace]}]}
+	   end,
+    Reply=case Result of
+	      {ok,Res}->
+		  {ok,Res};
+	      {error,ErrorReason}->
+		  {error,ErrorReason}
+	  end,
+    {reply, Reply,State};
+
+handle_call({test_diff_result}, _From, State) ->
+    Result=try lib_appl:test_diff_result(add_test,add_test,add,[20,22],5000) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,ErrorR}->
+		   {error,["M:F [A]) with reason",lib_appl,test_diff_result,[add_test,add_test,add,[20,22],5000],"Reason=", ErrorR]}
 	   catch
 	       Event:Reason:Stacktrace ->
 		   {error,[#{event=>Event,
