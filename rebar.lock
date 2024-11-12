@@ -8,5 +8,5 @@
   0},
  {<<"rd">>,
   {git,"https://github.com/joq62/rd.git",
-       {ref,"e010a8a7a50a5b7641416415f67dfcc7a87216da"}},
+       {ref,"9fd05e185cb579fa031fd925d5190eef5a3db4cb"}},
   0}].
