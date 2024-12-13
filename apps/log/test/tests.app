@@ -1,8 +1,8 @@
-{application, appl,
+{application, tests,
  [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, {appl_app, []}},
+  {mod, {tests_app, []}},
   {applications,
    [kernel,
     stdlib
@@ -10,6 +10,6 @@
   {env,[]},
   {modules, []},
 
-  {licenses, ["Apache-2.0"]},
+  {licenses, ["Apache 2.0"]},
   {links, []}
  ]}.

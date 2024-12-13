@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%% @doc template_application top level supervisor.
+%% @doc test_appl top level supervisor.
 %% @end
 %%%-------------------------------------------------------------------
 
--module(appl_sup).
+-module(test_appl_sup).
 
 -behaviour(supervisor).
 
@@ -30,8 +30,12 @@ init([]) ->
                  intensity => 0,
                  period => 1},
     ChildSpecs = [
-		  #{id=>appl,
-		    start=>{appl,start_link,[]}}
+		  #{id=>log,
+		    start=>{log,start_link,[]}},
+		  #{id=>rd,
+		    start=>{rd,start_link,[]}},
+		   #{id=>application_server,
+		    start=>{application_server,start_link,[]}}
 		 ],
     {ok, {SupFlags, ChildSpecs}}.
 

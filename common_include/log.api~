@@ -1,0 +1,20 @@
+-include("sender.hrl").
+
+-define(MainLogDir,"logs").
+-define(LocalLogDir,"log.logs").
+-define(LogFile,"file").
+-define(MaxNumFiles,10).
+-define(MaxNumBytes,100000).
+
+%%%% Log Api -----------------------------------------------------------------------------
+
+%-define(LOG_NOTICE(Msg,Data),sd:cast(control,{log,notice,[Msg,Data,?Sender]})).
+%-define(LOG_WARNING(Msg,Data),sd:cast(control,{log,warning,[Msg,Data,?Sender]})).
+%-define(LOG_ALERT(Msg,Data),sd:cast(control,{log,alert,[Msg,Data,?Sender]})).
+
+-define(LOG_NOTICE(Msg,Data),sd:call(control,a,5000)).
+
+%-define(LOG_NOTICE(Msg,Data),sd:call(control,{log,notice,[Msg,Data,node(),self(),?MODULE,?FUNCTION_NAME,?LINE,erlang:timestamp()]},5000)).	
+
+-define(LOG_WARNING(Msg,Data),sd:call(control,{log,warning,[Msg,Data,node(),self(),?MODULE,?FUNCTION_NAME,?LINE,erlang:timestamp()]},5000)).
+-define(LOG_ALERT(Msg,Data),sd:call(control,{log,alert,[Msg,Data,node(),self(),?MODULE,?FUNCTION_NAME,?LINE,erlang:timestamp()]},5000)).

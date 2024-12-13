@@ -6,8 +6,8 @@
 %%% @end
 %%% Created :  7 Nov 2024 by c50 <joq62@c50>
 %%%-------------------------------------------------------------------
--module(lib_appl).
-
+-module(lib_control).
+ 
 -include("log.api").
 %% API
 -export([

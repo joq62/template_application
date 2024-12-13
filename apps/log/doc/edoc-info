@@ -1,0 +1,3 @@
+%% encoding: UTF-8
+{application,log}.
+{modules,[lib_log,log,log_app,log_sup]}.

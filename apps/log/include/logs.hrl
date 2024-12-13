@@ -1,0 +1,12 @@
+-record(info,{
+	      timestamp,
+	      datetime,
+	      level,
+	      node,
+	      pid,
+	      module,
+	      function,
+	      line,
+	      infotext,
+	      infoargs
+	     }).

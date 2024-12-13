@@ -6,9 +6,9 @@
 %%% @end
 %%% Created : 24 Sep 2024 by c50 <joq62@c50>
 %%%-------------------------------------------------------------------
--module(test_appl).
+-module(test_control).
 
-%% API
+%% API 
 -export([start/0]).
 
 %%%
@@ -17,8 +17,8 @@
 %% Include files
 %% --------------------------------------------------------------------
 -include("log.api").
--define(Appl,appl).
--define(NodeName,"appl").
+-define(Appl,control).
+-define(NodeName,"control").
 
 %%%===================================================================
 %%% API
@@ -49,8 +49,7 @@ test_1()->
     {ok,Host}=net:gethostname(),
     ApplNode=list_to_atom(?NodeName++"@"++Host),
     pong=rpc:call(ApplNode,?Appl,ping,[],5000),
-    {Year,Month,Day}=date(),
-    {ok,Year,Month,Day}=rpc:call(ApplNode,appl,template_call,[glurk],5000),
+   
     ok.
 
 

@@ -1,16 +1,16 @@
 %%%-------------------------------------------------------------------
-%% @doc template_application public API
+%% @doc log public API
 %% @end
 %%%-------------------------------------------------------------------
 
--module(appl_app).
+-module(log_app).
 
 -behaviour(application).
 
 -export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    appl_sup:start_link().
+    log_sup:start_link().
 
 stop(_State) ->
     ok.
