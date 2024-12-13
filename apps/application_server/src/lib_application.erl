@@ -70,8 +70,8 @@ install_build(SpecFile,ApplicationMaps)->
 				maps:get(git_url_x86_64,Map)
 			end,
 		 NodeName=maps:get(nodename,Map),
-		 ApplicationName=maps:get(application_name,Map),
-		 TarFileName=maps:get(tar_filename,Map),
+	%	 ApplicationName=maps:get(application_name,Map),
+	%	 TarFileName=maps:get(tar_filename,Map),
 		 TarDir=maps:get(tar_dir,Map),
 		 ApplicationDir=maps:get(application_dir,Map),
 		
