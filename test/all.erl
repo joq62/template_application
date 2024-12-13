@@ -50,14 +50,18 @@
 %% --------------------------------------------------------------------
 start()->
    
-    {ok,ControlId}=setup(),
-    ok=test_0(ControlId),
-%    ok=test_1(ControlId),
- %   ok=test_11(ControlId),
- %   ok=test_2(ControlId),
+    ok=setup(),
+  %  ok=test_0(),
+    ok=test_1(),
+    ok=test_2(),
+
+  %  ok=test_22(),    
+
+    Applications=sd:call(control,{apply,application,which_applications,[]},5000),
+    io:format("Applications = ~p~n",[{Applications,?MODULE,?FUNCTION_NAME,?LINE}]),
     
-
-
+    AllNames=global:registered_names(),
+    io:format("AllNames = ~p~n",[{AllNames,?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %    ApplicationToTest=list_to_atom("test_"++?Appl),
  %   ok=rpc:call(get_node(?NodeName),ApplicationToTest,start,[],10*5000),
@@ -82,7 +86,7 @@ start()->
 %% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
 %% --------------------------------------------------------------------
 
-test_0(ControlId)->
+test_0()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
 
     LOG=?LOG_DEBUG("Debug ~p~n",[?MODULE]),
@@ -102,68 +106,36 @@ test_0(ControlId)->
 %% --------------------------------------------------------------------
 -define(TestAppFile,"add_test.application").
 
-test_2(ControlId)->
+test_2()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
-    Result=send_receive(ControlId,{install,?TestAppFile},5000),
-    io:format("Result ~p~n",[{Result,?MODULE,?FUNCTION_NAME,?LINE}]),
+    Install=sd:call(control,{install,?TestAppFile},2*5000),
+    io:format("Install ~p~n",[{Install,?MODULE,?FUNCTION_NAME,?LINE}]),  
+    {ok,42}=sd:call(add_test,{add,20,22},5000),
+    {error,["Timeout in call",add_test,{add,20,glurk},5000]}=sd:call(add_test,{add,20,glurk},5000),
+    timer:sleep(2*5000),
+    {ok,42}=sd:call(add_test,{add,20,22},5000),
+    
+    Uninstall=sd:call(control,{uninstall,?TestAppFile},2*5000),
+    io:format("Uninstall ~p~n",[{Uninstall,?MODULE,?FUNCTION_NAME,?LINE}]), 
+    timer:sleep(5000),
+    {error,[undefined,add_test]}=sd:call(add_test,{add,20,22},5000),
+
     
     ok.
-
 
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
 %% Description: Based on hosts.config file checks which hosts are avaible
 %% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
 %% --------------------------------------------------------------------
-test_11(ControlId)->
+test_1()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
-    {ok,42}=sd:call(ControlId,{add,20,22},5000),
+    pong=sd:call(control,{ping},5000),
     {error,_}=sd:call(glurk,{add,20,22},5000),
-    {ok,43}=sd:call(ControlId,{add,20,23},5000),
+   
     ok.
 
-%% --------------------------------------------------------------------
-%% Function: available_hosts()
-%% Description: Based on hosts.config file checks which hosts are avaible
-%% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
-%% --------------------------------------------------------------------
-test_1(ControlId)->
-    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
-    {ok,42}=sd:call(ControlId,{add,20,22},5000),
-    {error,_}=sd:call(glurk,{add,20,22},5000),
-    {ok,43}=sd:call(ControlId,{add,20,23},5000),
-    ok.
 
-send_receive(ServerId,Msg,TimeOut)->
-    Self=self(),
-    case rpc:call(node(),global,send,[ServerId,{Self,Msg}],5000) of
-	{badrpc,Reason}->
-	    {error,[badrpc,Reason]};
-	Pid ->
-	    ok,
-	    receive
-		{Pid,Reply}->
-		    Reply
-	    after 
-		TimeOut ->
-		    {error,["Timeout in call",ServerId,Msg,TimeOut]}
-	    end
-    end.
-    
-
-%% --------------------------------------------------------------------
-%% Function: available_hosts()
-%% Description: Based on hosts.config file checks which hosts are avaible
-%% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
-%% --------------------------------------------------------------------
-log_loop(Strings)->    
-    Info=os:cmd("cat "++?LogFilePath),
-    NewStrings=string:lexemes(Info,"\n"),
-    
-    [io:format("~p~n",[String])||String<-NewStrings,
-				 false=:=lists:member(String,Strings)],
-    timer:sleep(10*1000),
-    log_loop(NewStrings).
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
 %% Description: Based on hosts.config file checks which hosts are avaible
@@ -171,6 +143,10 @@ log_loop(Strings)->
 %% --------------------------------------------------------------------
 setup()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
+
+    io:format("cwd ~p~n",[{file:get_cwd(),?MODULE,?FUNCTION_NAME,?LINE}]),
+    
+
     {ok,Host}=net:gethostname(),
     ControlNode=list_to_atom(?Appl++"@"++Host),
     rpc:call(ControlNode,init,stop,[],5000),
@@ -190,29 +166,24 @@ setup()->
     []=os:cmd(?Daemon),
     true=check_node_started(get_node(?NodeName)),
     
-    %% Check applications are correct started
-    pong=rpc:call(get_node(?NodeName),log,ping,[],3*5000),
-  %  pong=rpc:call(get_node(?NodeName),rd,ping,[],5000),
-
-    %% Change
-   % pong=rpc:call(get_node(?NodeName),api,ping,[],3*5000),
-    
-    Applications=rpc:call(ControlNode,application,which_applications,[],5000),
-    io:format("Applications = ~p~n",[{Applications,?MODULE,?FUNCTION_NAME,?LINE}]),
-    
-
     %% 
     net_adm:world(),
     MyPid=self(),
     yes=global:register_name(?MODULE,MyPid),
-  
+
+    timer:sleep(2*5000),
+    
     
 
-    {ok,Hostname}=net:gethostname(),
-    ControlId=list_to_atom(atom_to_list(control)++"@"++Hostname),
-    global:whereis_name(ControlId),
+    Applications=sd:call(control,{apply,application,which_applications,[]},5000),
+    io:format("Applications = ~p~n",[{Applications,?MODULE,?FUNCTION_NAME,?LINE}]),
+  
+    AllNames=global:registered_names(),
+    io:format("AllNames = ~p~n",[{AllNames,?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    {ok,ControlId}.
+
+
+    ok.
 
 
 %%--------------------------------------------------------------------
@@ -271,3 +242,17 @@ check_node_stopped(Node,NumCheck,CheckDelay,false)->
 get_node(NodeName)->
     {ok,Host}=net:gethostname(),
     list_to_atom(NodeName++"@"++Host).
+
+%% --------------------------------------------------------------------
+%% Function: available_hosts()
+%% Description: Based on hosts.config file checks which hosts are avaible
+%% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
+%% --------------------------------------------------------------------
+log_loop(Strings)->    
+    Info=os:cmd("cat "++?LogFilePath),
+    NewStrings=string:lexemes(Info,"\n"),
+    
+    [io:format("~p~n",[String])||String<-NewStrings,
+				 false=:=lists:member(String,Strings)],
+    timer:sleep(5*1000),
+    log_loop(NewStrings).

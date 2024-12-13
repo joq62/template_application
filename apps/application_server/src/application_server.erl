@@ -495,12 +495,12 @@ handle_info(timeout, State) ->
     file:del_dir_r(?SpecsDir),
     case lib_git:update_repo(?SpecsDir) of
 	{error,["Dir eexists ",_RepoDir]}->
-	    ok=case lib_git:clone(?RepoGit) of
-		   ok->
-		       ?LOG_NOTICE("Repo dir didnt existed so a succesful cloned action is executed",[?SpecsDir]);
-		   {error,Reason}->
-		       ?LOG_WARNING("Failed during clone action ",[Reason])
-	       end;
+	    case lib_git:clone(?RepoGit) of
+		ok->
+		    ?LOG_NOTICE("Repo dir didnt existed so a succesful cloned action is executed",[?SpecsDir]);
+		{error,Reason}->
+		    ?LOG_WARNING("Failed during clone action ",[Reason])
+	    end;
 	{error,["Already updated ","application_specs"]}->
 	    ok;
 	{error,Reason}->
@@ -536,7 +536,6 @@ handle_info({timeout,check_repo_update}, State) ->
 
 handle_info(Info, State) ->
     ?LOG_WARNING("Unmatched signal",[Info]),
-    io:format("unmatched_signal ~p~n",[{Info,?MODULE,?LINE}]),
     {noreply, State}.
 
 %%--------------------------------------------------------------------

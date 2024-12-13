@@ -116,8 +116,9 @@ init([]) ->
     yes=global:register_name(ControlId,MyPid),
     MyPid=global:whereis_name(ControlId),
   
+    ?LOG_NOTICE("Server started",[?MODULE,ControlId,MyPid]),
  
-    {ok, #state{},0}.
+    {ok, #state{}}.
 
 
 %%--------------------------------------------------------------------
@@ -136,35 +137,6 @@ init([]) ->
 	  {stop, Reason :: term(), Reply :: term(), NewState :: term()} |
 	  {stop, Reason :: term(), NewState :: term()}.
 
-
-
-%%----- TemplateCode ---------------------------------------------------------------
-handle_call({template_call,Args}, _From, State) ->
-    Result=try erlang:apply(erlang,date,[])  of
-	      {Y,M,D}->
-		   {ok,Y,M,D};
-	      {error,ErrorR}->
-		   {error,["M:F [A]) with reason",erlang,date,[erlang,date,[]],"Reason=", ErrorR]}
-	   catch
-	       Event:Reason:Stacktrace ->
-		   {error,[#{event=>Event,
-			     module=>?MODULE,
-			     function=>?FUNCTION_NAME,
-			     line=>?LINE,
-			     args=>Args,
-			     reason=>Reason,
-			     stacktrace=>[Stacktrace]}]}
-	   end,
-    Reply=case Result of
-	      {ok,Year,Month,Day}->
-		  NewState=State,
-		  {ok,Year,Month,Day};
-	      {error,ErrorReason}->
-		  NewState=State,
-		  {error,ErrorReason}
-	  end,
-    {reply, Reply,NewState};
-
 %%----- Admin ---------------------------------------------------------------
 
 handle_call({ping}, _From, State) ->
@@ -173,7 +145,6 @@ handle_call({ping}, _From, State) ->
 
 handle_call(UnMatchedSignal, From, State) ->
    ?LOG_WARNING("Unmatched signal",[UnMatchedSignal]),
-    io:format("unmatched_signal ~p~n",[{UnMatchedSignal, From,?MODULE,?LINE}]),
     Reply = {error,[unmatched_signal,UnMatchedSignal, From]},
     {reply, Reply, State}.
 
@@ -205,59 +176,14 @@ handle_cast(UnMatchedSignal, State) ->
 	  {noreply, NewState :: term(), hibernate} |
 	  {stop, Reason :: normal | term(), NewState :: term()}.
 
-handle_info(timeout, State) ->
-   
-  %%- Create logfiles
-    file:del_dir_r(?MainLogDir),
-    file:make_dir(?MainLogDir),
-    [NodeName,_HostName]=string:tokens(atom_to_list(node()),"@"),
-    NodeNodeLogDir=filename:join(?MainLogDir,NodeName),
-
-% {control,{<8755.284.0>,{log,notice,["Server started ",[control],{'control@c50',<8755.284.0>,control,init,129,{1734,33899,240128}
-% {sd,call,[control,{log,notice,["Log dirs and file created",["logs/control"],{'control@c50',<8923.284.0>,control,init,128,{1734,35546,47273}}}}]
- %   glurk=global:send(control,{add,20,22}),
- %   glurk=sd:call(control,{add,20,22},5000),
-						%  glurk=?LOG_NOTICE("Test ",[]),
-    
-    case log:create_logger(NodeNodeLogDir,?LocalLogDir,?LogFile,?MaxNumFiles,?MaxNumBytes) of
-	ok->
-	 %   ok;
-	    ?LOG_NOTICE("Log dirs and file created",[NodeNodeLogDir]);
-	LogError->
-	    %ok
-	    ?LOG_WARNING("Failed to create log dir and file ",[LogError])
-    end,
-    ?LOG_WARNING("Server started ",[?MODULE]),
-    {noreply, State};
 
 %%-------------- API's --------------------%%
 
 %%--------------------------------------------------------------------
 %% @doc
-%% log Apis
+%% 
 %% @end
 %%--------------------------------------------------------------------
-
-handle_info({Pid,{log,debug,[Msg,Data,Node,PidX,M,F,Line,TimeStamp]}}, State) ->
-    R=log:debug(Msg,Data,Node,PidX,M,F,Line,TimeStamp),
-    Pid!{self(),{R}},
-    {noreply, State};
-
-handle_info({Pid,{log,notice,[Msg,Data,Sender]}}, State) ->
-    io:format(" ~p~n",[{Msg,Data,Sender,?MODULE,?LINE}]),
-    R=log:notice(Msg,Data,Sender),
-    Pid!{self(),{R}},
-    {noreply, State};
-
-handle_info({Pid,{log,warning,[Msg,Data,Sender]}}, State) ->
-    R=log:warning(Msg,Data,Sender),
-    Pid!{self(),{R}},
-    {noreply, State};
-
-handle_info({Pid,{log,alert,[Msg,Data,Sender]}}, State) ->
-    R=log:alert(Msg,Data,Sender),
-    Pid!{self(),{R}},
-    {noreply, State};
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -267,12 +193,17 @@ handle_info({Pid,{log,alert,[Msg,Data,Sender]}}, State) ->
 
 handle_info({Pid,{install,FileName}}, State) ->
     R=application_server:install(FileName),
-    Pid!{self(),{R}},
+    Pid!{self(),R},
+  {noreply, State};
+
+handle_info({Pid,{uninstall,FileName}}, State) ->
+    R=application_server:uninstall(FileName),
+    Pid!{self(),R},
   {noreply, State};
 
 handle_info({Pid,{install_build,FileName}}, State) ->
     R=application_server:install_build(FileName),
-    Pid!{self(),{R}},
+    Pid!{self(),R},
   {noreply, State};
 
 %%--------------------------------------------------------------------
@@ -280,8 +211,16 @@ handle_info({Pid,{install_build,FileName}}, State) ->
 %% 
 %% @end
 %%--------------------------------------------------------------------
-handle_info({Pid,{add,A,B}}, State) ->
-  Pid!{self(),{ok,A+B}},
+handle_info({Pid,{apply,M,F,A}}, State) ->
+  Pid!{self(),erlang:apply(M,F,A)},
+  {noreply, State};
+%%--------------------------------------------------------------------
+%% @doc
+%% Admin 
+%% @end
+%%--------------------------------------------------------------------
+handle_info({Pid,{ping}}, State) ->
+  Pid!{self(),pong},
   {noreply, State};
 
 

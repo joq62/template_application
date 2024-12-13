@@ -155,7 +155,7 @@ install(SpecFile,ApplicationMaps)->
 		 %% Start application to test and check node started
 		StartResult=os:cmd(?Daemon(ApplicationDir,ApplicationName)),
 						%   io:format("~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
-		 case check_appl_started(Node,list_to_atom(ApplicationName)) of
+		 case check_appl_started(list_to_atom(ApplicationName)) of
 		     true->
 			 ?LOG_NOTICE("Application started on Node ",[ApplicationName,Node]);
 		     false->
@@ -190,16 +190,15 @@ end.
 %%
 %% @end
 %%--------------------------------------------------------------------
-check_appl_started(Node,App)->
-    check_appl_started(Node,App,?NumCheck,?CheckDelay,false).
+check_appl_started(App)->
+    check_appl_started(App,?NumCheck,?CheckDelay,false).
 
-check_appl_started(_Node,_App,_NumCheck,_CheckDelay,true)->
+check_appl_started(_App,_NumCheck,_CheckDelay,true)->
     true;
-check_appl_started(_Node,_App,0,_CheckDelay,Boolean)->
+check_appl_started(_App,0,_CheckDelay,Boolean)->
     Boolean;
-check_appl_started(Node,App,NumCheck,CheckDelay,false)->
-    io:format("~p~n",[{NumCheck,Node,App}]),
-    case rpc:call(Node,App,ping,[],5000) of
+check_appl_started(App,NumCheck,CheckDelay,false)->
+    case sd:call(App,{ping},5000) of
 	pong->
 	    N=NumCheck,
 	    Boolean=true;
@@ -208,8 +207,7 @@ check_appl_started(Node,App,NumCheck,CheckDelay,false)->
 	    N=NumCheck-1,
 	    Boolean=false
     end,
- %   io:format("NumCheck ~p~n",[{NumCheck,?MODULE,?LINE,?FUNCTION_NAME}]),
-    check_appl_started(Node,App,N,CheckDelay,Boolean).
+    check_appl_started(App,N,CheckDelay,Boolean).
 
 
 %%--------------------------------------------------------------------
